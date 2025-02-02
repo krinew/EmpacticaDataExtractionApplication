@@ -3,6 +3,8 @@ package com.example.myapplication;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Menu;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.empatica.empalink.EmpaDeviceManager;
 import com.google.android.material.snackbar.Snackbar;
@@ -28,6 +30,31 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
 
     private AppBarConfiguration mAppBarConfiguration;
     private ActivityMainBinding binding;
+
+    private static final String EMPATICA_API_KEY = "";
+
+    private EmpaDeviceManager deviceManager = null;
+    private TextView acc_xlabel;
+    private TextView acc_ylabel;
+    private TextView bvpLabel;
+    private TextView edaLabel;
+    private TextView tempLabel;
+
+    private TextView ibiLabel;
+
+    private TextView batteryLabel;
+
+    private TextView statusLabel;
+
+    private TextView deviceNameLabel;
+
+    private LinearLayout dataCnt;
+
+
+
+
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
