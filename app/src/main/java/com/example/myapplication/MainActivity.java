@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
@@ -10,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.view.View;
@@ -17,6 +19,12 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import com.empatica.empalink.EmpaDeviceManager;
 import com.empatica.empalink.ConnectionNotAllowedException;
@@ -27,10 +35,11 @@ import com.empatica.empalink.config.EmpaStatus;
 import com.empatica.empalink.delegate.EmpaDataDelegate;
 import com.empatica.empalink.delegate.EmpaStatusDelegate;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements EmpaDataDelegate, EmpaStatusDelegate {
 
@@ -41,6 +50,7 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
 
     private EmpaDeviceManager deviceManager = null;
 
+    // UI components
     private TextView accel_xLabel;
     private TextView accel_yLabel;
     private TextView accel_zLabel;
@@ -51,8 +61,14 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
     private TextView batteryLabel;
     private TextView statusLabel;
     private TextView deviceNameLabel;
+    private TextView wristStatusLabel;
     private LinearLayout dataCnt;
+    private Button downloadButton;
 
+    // List to store sensor data as CSV rows
+    private List<String> sensorDataList = new ArrayList<>();
+
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,8 +86,10 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
         temperatureLabel = findViewById(R.id.temperature);
         batteryLabel = findViewById(R.id.battery);
         deviceNameLabel = findViewById(R.id.deviceName);
+        wristStatusLabel = findViewById(R.id.wrist_status_label);
 
-        final Button disconnectButton = findViewById(R.id.disconnectButton);
+        // Disconnect button to disconnect from the device
+        Button disconnectButton = findViewById(R.id.disconnectButton);
         disconnectButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -81,7 +99,16 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
             }
         });
 
-        // Start by initializing the Empatica device manager.
+        // Download button to export CSV file
+        downloadButton = findViewById(R.id.downloadButton);
+        downloadButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                exportCSV(view);
+            }
+        });
+
+        // Initialize the Empatica device manager.
         initEmpaticaDeviceManager();
     }
 
@@ -272,11 +299,16 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
         } else if (status == EmpaStatus.DISCONNECTED) {
             updateLabel(deviceNameLabel, "");
             hide();
+            // Save CSV data automatically upon disconnection (optional)
+            saveDataToCSV();
         }
     }
 
     @Override
     public void didReceiveAcceleration(int x, int y, int z, double timestamp) {
+        // Create a CSV row for acceleration data and store it
+        String data = timestamp + ",ACCEL," + x + "," + y + "," + z;
+        sensorDataList.add(data);
         updateLabel(accel_xLabel, "" + x);
         updateLabel(accel_yLabel, "" + y);
         updateLabel(accel_zLabel, "" + z);
@@ -284,26 +316,35 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
 
     @Override
     public void didReceiveBVP(float bvp, double timestamp) {
+        String data = timestamp + ",BVP," + bvp;
+        sensorDataList.add(data);
         updateLabel(bvpLabel, "" + bvp);
     }
 
     @Override
     public void didReceiveBatteryLevel(float battery, double timestamp) {
-        updateLabel(batteryLabel, String.format("%.0f %%", battery * 100));
+        String batteryText = String.format("%.0f %%", battery * 100);
+        updateLabel(batteryLabel, batteryText);
     }
 
     @Override
     public void didReceiveGSR(float gsr, double timestamp) {
+        String data = timestamp + ",EDA," + gsr;
+        sensorDataList.add(data);
         updateLabel(edaLabel, "" + gsr);
     }
 
     @Override
     public void didReceiveIBI(float ibi, double timestamp) {
+        String data = timestamp + ",IBI," + ibi;
+        sensorDataList.add(data);
         updateLabel(ibiLabel, "" + ibi);
     }
 
     @Override
     public void didReceiveTemperature(float temp, double timestamp) {
+        String data = timestamp + ",TEMP," + temp;
+        sensorDataList.add(data);
         updateLabel(temperatureLabel, "" + temp);
     }
 
@@ -331,7 +372,6 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                TextView wristStatusLabel = findViewById(R.id.wrist_status_label);
                 if (status == EmpaSensorStatus.ON_WRIST) {
                     wristStatusLabel.setText("ON WRIST");
                 } else {
@@ -357,5 +397,67 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
                 dataCnt.setVisibility(View.INVISIBLE);
             }
         });
+    }
+
+    /**
+     * Called when the download button is clicked.
+     * This method saves the data to a CSV file and then triggers a share intent so that the user can export the file.
+     */
+    public void exportCSV(View view) {
+        File file = saveDataToCSV();  // Save the data to a CSV file first
+        if (file != null) {
+            shareCSVFile(file);  // Trigger sharing (or "downloading") of the CSV file
+        }
+    }
+
+    /**
+     * Saves the collected sensor data to a CSV file.
+     * The file is stored in the app-specific external files directory.
+     *
+     * @return The CSV file if saved successfully, or null if there was an error.
+     */
+    private File saveDataToCSV() {
+        File path = getExternalFilesDir(null);  // This returns the app-specific directory on external storage
+        File file = new File(path, "EmpaticaData.csv");
+
+        try (FileWriter writer = new FileWriter(file)) {
+            // Write the header row
+            writer.append("Timestamp,Type,Value1,Value2,Value3\n");
+
+            // Write each row of sensor data
+            for (String data : sensorDataList) {
+                writer.append(data).append("\n");
+            }
+            writer.flush();
+            Toast.makeText(this, "Data saved to: " + file.getAbsolutePath(), Toast.LENGTH_LONG).show();
+            return file;
+        } catch (IOException e) {
+            Toast.makeText(this, "Error saving file ", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Shares the CSV file using Android's share intent.
+     * This allows the user to download, email, or otherwise export the CSV file.
+     *
+     * @param file The CSV file to share.
+     */
+    private void shareCSVFile(File file) {
+        // Use FileProvider to get a content URI
+        Uri fileUri = FileProvider.getUriForFile(this,
+                getApplicationContext().getPackageName() + ".provider", file);
+
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("text/csv");
+        intent.putExtra(Intent.EXTRA_STREAM, fileUri);
+        intent.putExtra(Intent.EXTRA_SUBJECT, "Empatica Sensor Data");
+        intent.putExtra(Intent.EXTRA_TEXT, "Attached is the CSV file with Empatica sensor data.");
+
+        // Grant temporary read permission to the content URI
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        startActivity(Intent.createChooser(intent, "Share CSV File"));
     }
 }

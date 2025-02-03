@@ -1,25 +1,202 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
-    tools:openDrawer="start">
+    tools:context=".MainActivity"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@android:color/holo_blue_dark">
 
-    <include
-        android:id="@+id/app_bar_main"
-        layout="@layout/app_bar_main"
+    <!-- Status TextView -->
+    <TextView
+        android:id="@+id/status"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="36dp"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:textStyle="bold" />
 
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/nav_view"
-        android:layout_width="wrap_content"
+    <!-- Device Name TextView -->
+    <TextView
+        android:id="@+id/deviceName"
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:layout_marginTop="8dp" />
+
+    <!-- Data Area Container -->
+    <LinearLayout
+        android:id="@+id/dataArea"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="start"
-        android:fitsSystemWindows="true"
-        app:headerLayout="@layout/nav_header_main"
-        app:menu="@menu/activity_main_drawer" />
-</androidx.drawerlayout.widget.DrawerLayout>
+        android:orientation="vertical"
+        android:visibility="invisible"
+        android:layout_marginTop="8dp">
+
+        <!-- Accelerometer Label -->
+        <TextView
+            android:id="@+id/accel_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/accel"
+            android:textColor="@android:color/white"
+            android:textSize="16sp" />
+
+        <!-- Accelerometer Data Horizontal Area -->
+        <LinearLayout
+            android:id="@+id/accel_area"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/accel_x"
+                android:textColor="@android:color/white" />
+
+            <TextView
+                android:id="@+id/accel_x"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="@string/emptyText"
+                android:textColor="@android:color/white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/accel_y"
+                android:textColor="@android:color/white"
+                android:layout_marginStart="8dp" />
+
+            <TextView
+                android:id="@+id/accel_y"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="@string/emptyText"
+                android:textColor="@android:color/white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/accel_z"
+                android:textColor="@android:color/white"
+                android:layout_marginStart="8dp" />
+
+            <TextView
+                android:id="@+id/accel_z"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:text="@string/emptyText"
+                android:textColor="@android:color/white" />
+        </LinearLayout>
+
+        <!-- BVP Label and Value -->
+        <TextView
+            android:id="@+id/bvp_label"
+            android:layout_marginTop="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/bvp_label"
+            android:textColor="@android:color/white" />
+
+        <TextView
+            android:id="@+id/bvp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/emptyText"
+            android:textColor="@android:color/white" />
+
+        <!-- EDA Label and Value -->
+        <TextView
+            android:id="@+id/eda_label"
+            android:layout_marginTop="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/eda_label"
+            android:textColor="@android:color/white" />
+
+        <TextView
+            android:id="@+id/eda"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/emptyText"
+            android:textColor="@android:color/white" />
+
+        <!-- IBI Label and Value -->
+        <TextView
+            android:id="@+id/ibi_label"
+            android:layout_marginTop="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ibi_label"
+            android:textColor="@android:color/white" />
+
+        <TextView
+            android:id="@+id/ibi"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/emptyText"
+            android:textColor="@android:color/white" />
+
+        <!-- Temperature Label and Value -->
+        <TextView
+            android:id="@+id/temp_label"
+            android:layout_marginTop="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/temp_label"
+            android:textColor="@android:color/white" />
+
+        <TextView
+            android:id="@+id/temperature"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/emptyText"
+            android:textColor="@android:color/white" />
+
+        <!-- Battery Label and Value -->
+        <TextView
+            android:id="@+id/battery_label"
+            android:layout_marginTop="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/battery_label"
+            android:textColor="@android:color/white" />
+
+        <TextView
+            android:id="@+id/battery"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/emptyText"
+            android:textColor="@android:color/white" />
+
+        <!-- Wrist Status -->
+        <TextView
+            android:id="@+id/wrist_status_label"
+            android:layout_marginTop="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/emptyText"
+            android:textColor="@android:color/white" />
+
+        <!-- Disconnect Button -->
+        <Button
+            android:id="@+id/disconnectButton"
+            android:layout_marginTop="16dp"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:text="STOP STREAMING" />
+
+        <Button
+            android:id="@+id/downloadButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Download CSV" />
+
+    </LinearLayout>
+</LinearLayout>
