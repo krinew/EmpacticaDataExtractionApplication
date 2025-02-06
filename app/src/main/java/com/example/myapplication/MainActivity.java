@@ -42,10 +42,15 @@ import com.empatica.empalink.delegate.EmpaDataDelegate;
 import com.empatica.empalink.delegate.EmpaStatusDelegate;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 public class MainActivity extends AppCompatActivity implements EmpaDataDelegate, EmpaStatusDelegate {
 
@@ -73,11 +78,15 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
     private LinearLayout dataCnt;
     private Button downloadButton;
 
+
+
     private boolean isScanning = false;
     private final Object scanLock = new Object();
 
     // List to store sensor data as CSV rows
-    private List<String> sensorDataList = new ArrayList<>();
+    HashMap<String,List<String>> sensorDataList = new HashMap<>();
+
+    private final String[] sensorTypes = {"ACC","BVP","IBI","TEMP","EDA"};
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -123,6 +132,10 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
                 exportCSV(view);
             }
         });
+
+        for (String type : sensorTypes) {
+            sensorDataList.put(type, new ArrayList<>());
+        }
 
         // Initialize the Empatica device manager.
         initEmpaticaDeviceManager();
@@ -533,7 +546,10 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
                 Log.i(TAG, "didUpdateStatus: Device disconnected");
                 updateLabel(deviceNameLabel, "");
                 hide();
-                saveDataToCSV();
+                File zipFile = createZip();
+                if (zipFile != null) {
+                    shareZip(zipFile);
+                }
                 // After disconnection, restart scanning
                 startDeviceScan();
                 break;
@@ -545,8 +561,8 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
 
     @Override
     public void didReceiveAcceleration(int x, int y, int z, double timestamp) {
-        String data = timestamp + ",ACCEL," + x + "," + y + "," + z;
-        sensorDataList.add(data);
+        String data = String.format("%f,ACC,%d,%d,%d", timestamp, x, y, z);
+        sensorDataList.get("ACC").add(data);
         Log.d(TAG, "didReceiveAcceleration: " + data);
         updateLabel(accel_xLabel, "" + x);
         updateLabel(accel_yLabel, "" + y);
@@ -555,8 +571,8 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
 
     @Override
     public void didReceiveBVP(float bvp, double timestamp) {
-        String data = timestamp + ",BVP," + bvp;
-        sensorDataList.add(data);
+        String data = String.format("%f,BVP,%f", timestamp, bvp);
+        sensorDataList.get("BVP").add(data);
         Log.d(TAG, "didReceiveBVP: " + data);
         updateLabel(bvpLabel, "" + bvp);
     }
@@ -570,24 +586,24 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
 
     @Override
     public void didReceiveGSR(float gsr, double timestamp) {
-        String data = timestamp + ",EDA," + gsr;
-        sensorDataList.add(data);
+        String data = String.format("%f,EDA,%f", timestamp, gsr);
+        sensorDataList.get("EDA").add(data);
         Log.d(TAG, "didReceiveGSR: " + data);
         updateLabel(edaLabel, "" + gsr);
     }
 
     @Override
     public void didReceiveIBI(float ibi, double timestamp) {
-        String data = timestamp + ",IBI," + ibi;
-        sensorDataList.add(data);
+        String data = String.format("%f,IBI,%f", timestamp, ibi);
+        sensorDataList.get("IBI").add(data);
         Log.d(TAG, "didReceiveIBI: " + data);
         updateLabel(ibiLabel, "" + ibi);
     }
 
     @Override
     public void didReceiveTemperature(float temp, double timestamp) {
-        String data = timestamp + ",TEMP," + temp;
-        sensorDataList.add(data);
+        String data = String.format("%f,TEMP,%f", timestamp, temp);
+        sensorDataList.get("TEMP").add(data);
         Log.d(TAG, "didReceiveTemperature: " + data);
         updateLabel(temperatureLabel, "" + temp);
     }
@@ -649,18 +665,82 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
         });
     }
 
+    private void saveAllDataToCSV() {
+        for (String sensorType : sensorTypes) {
+            List<String> dataList = sensorDataList.get(sensorType);
+            if (dataList != null && !dataList.isEmpty()) {
+                saveDataToCSV(sensorType);
+            }
+        }
+        // Clear data after saving
+        for (String type : sensorTypes) {
+            sensorDataList.get(type).clear();
+        }
+    }
+
     /**
      * Called when the download button is clicked.
      * Saves the data to a CSV file and triggers a share intent.
      */
     public void exportCSV(View view) {
         Log.d(TAG, "exportCSV: Exporting CSV file");
-        File file = saveDataToCSV();  // Save the data to a CSV file first
-        if (file != null) {
-            shareCSVFile(file);  // Trigger sharing (or "downloading") of the CSV file
+        File zipFile = createZip();  // Save the data to a CSV file first
+        if (zipFile != null) {
+            shareZip(zipFile);  // Trigger sharing (or "downloading") of the CSV file
         } else {
             Log.e(TAG, "exportCSV: Failed to save CSV file");
         }
+    }
+
+    private File createZip() {
+        File path = getExternalFilesDir(null);
+        String timestamp = String.format("%d", System.currentTimeMillis());
+        File zipFile = new File(path, "empatica_data_compiled" + timestamp + ".zip");
+
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile))) {
+            for (String sensorType : sensorTypes) {
+                List<String> dataList = sensorDataList.get(sensorType);
+                if (dataList != null && !dataList.isEmpty()) {
+                    // Create CSV content in memory
+                    StringBuilder csvContent = new StringBuilder();
+
+                    // Add header
+                    if (sensorType.equals("ACC")) {
+                        csvContent.append("Timestamp,Type,X,Y,Z\n");
+                    } else {
+                        csvContent.append("Timestamp,Type,Value\n");
+                    }
+
+                    // Add data
+                    for (String data : dataList) {
+                        csvContent.append(data).append("\n");
+                    }
+
+                    // Add to ZIP
+                    ZipEntry entry = new ZipEntry(sensorType + ".csv");
+                    zos.putNextEntry(entry);
+                    zos.write(csvContent.toString().getBytes());
+                    zos.closeEntry();
+                }
+            }
+            return zipFile;
+        } catch (IOException e) {
+            Log.e(TAG, "Error creating ZIP file", e);
+            return null;
+        }
+    }
+
+    private void shareZip(File file) {
+        Uri fileUri = FileProvider.getUriForFile(this,
+                getApplicationContext().getPackageName() + ".provider", file);
+
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("application/zip");
+        intent.putExtra(Intent.EXTRA_STREAM, fileUri);
+        intent.putExtra(Intent.EXTRA_SUBJECT, "Empatica Sensor Data");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        startActivity(Intent.createChooser(intent, "Share ZIP File"));
     }
 
     /**
@@ -668,26 +748,31 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
      *
      * @return The CSV file if saved successfully, or null if there was an error.
      */
-    private File saveDataToCSV() {
-        Log.d(TAG, "saveDataToCSV: Saving sensor data to CSV file");
-        File path = getExternalFilesDir(null);  // App-specific external storage directory
-        File file = new File(path, "EmpaticaData.csv");
+    private File saveDataToCSV(String sensorType) {
+        File path = getExternalFilesDir(null);
+        String timestamp = String.format("%d", System.currentTimeMillis());
+        File file = new File(path, sensorType + "_" + timestamp + ".csv");
 
         try (FileWriter writer = new FileWriter(file)) {
-            // Write the header row
-            writer.append("Timestamp,Type,Value1,Value2,Value3\n");
+            // Write header based on sensor type
+            switch (sensorType) {
+                case "ACC":
+                    writer.append("Timestamp,Type,X,Y,Z\n");
+                    break;
+                default:
+                    writer.append("Timestamp,Type,Value\n");
+                    break;
+            }
 
-            // Write each row of sensor data
-            for (String data : sensorDataList) {
+            // Write data
+            for (String data : sensorDataList.get(sensorType)) {
                 writer.append(data).append("\n");
             }
             writer.flush();
-            Log.i(TAG, "saveDataToCSV: Data saved to " + file.getAbsolutePath());
-            Toast.makeText(this, "Data saved to: " + file.getAbsolutePath(), Toast.LENGTH_LONG).show();
+            Log.i(TAG, "Saved " + sensorType + " data to " + file.getAbsolutePath());
             return file;
         } catch (IOException e) {
-            Log.e(TAG, "saveDataToCSV: Error saving file", e);
-            Toast.makeText(this, "Error saving file ", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Error saving " + sensorType + " file", e);
             return null;
         }
     }
