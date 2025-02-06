@@ -14,7 +14,7 @@
         android:id="@+id/status"
         android:layout_width="match_parent"
         android:layout_height="36dp"
-        android:textColor="@android:color/white"
+        android:textColor="@android:color/black"
         android:textSize="18sp"
         android:textStyle="bold" />
 
@@ -23,7 +23,7 @@
         android:id="@+id/deviceName"
         android:layout_width="match_parent"
         android:layout_height="36dp"
-        android:textColor="@android:color/white"
+        android:textColor="@android:color/black"
         android:textSize="16sp"
         android:layout_marginTop="8dp" />
 
@@ -42,7 +42,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/accel"
-            android:textColor="@android:color/white"
+            android:textColor="@android:color/black"
             android:textSize="16sp" />
 
         <!-- Accelerometer Data Horizontal Area -->
@@ -57,20 +57,20 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/accel_x"
-                android:textColor="@android:color/white" />
+                android:textColor="@android:color/black" />
 
             <TextView
                 android:id="@+id/accel_x"
                 android:layout_width="50dp"
                 android:layout_height="wrap_content"
                 android:text="@string/emptyText"
-                android:textColor="@android:color/white" />
+                android:textColor="@android:color/black" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/accel_y"
-                android:textColor="@android:color/white"
+                android:textColor="@android:color/black"
                 android:layout_marginStart="8dp" />
 
             <TextView
@@ -78,13 +78,13 @@
                 android:layout_width="50dp"
                 android:layout_height="wrap_content"
                 android:text="@string/emptyText"
-                android:textColor="@android:color/white" />
+                android:textColor="@android:color/black" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/accel_z"
-                android:textColor="@android:color/white"
+                android:textColor="@android:color/black"
                 android:layout_marginStart="8dp" />
 
             <TextView

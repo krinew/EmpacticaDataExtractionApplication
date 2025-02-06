@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- When pressed (brighter for contrast) -->
+    <item android:drawable="@drawable/ic_icon_light" android:state_pressed="true"/>
+
+    <!-- Default state (white for visibility on dark backgrounds) -->
+    <item android:drawable="@drawable/ic_icon_white"/>
+
+</selector>

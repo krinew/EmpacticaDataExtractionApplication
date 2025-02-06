@@ -12,6 +12,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
@@ -29,6 +31,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
+import com.empatica.empalink.ConfigurationProfileException;
 import com.empatica.empalink.EmpaDeviceManager;
 import com.empatica.empalink.ConnectionNotAllowedException;
 import com.empatica.empalink.EmpaticaDevice;
@@ -51,7 +54,7 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
     private static final int REQUEST_BLUETOOTH_PERMISSION = 2;
     private static final int REQUEST_BLUETOOTH_SCAN_PERMISSION = 3;
     private static final String TAG = "MainActivity"; // Tag for logging
-    private static final String EMPATICA_API_KEY = "2d7ce21b237741cdb35a1007ec98fc18"; // TODO: Insert your API Key here
+    private static final String EMPATICA_API_KEY = "2fe2f405268349efaf63509c3dec89f5"; // TODO: Insert your API Key here
 
     private EmpaDeviceManager deviceManager = null;
 
@@ -69,6 +72,9 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
     private TextView wristStatusLabel;
     private LinearLayout dataCnt;
     private Button downloadButton;
+
+    private boolean isScanning = false;
+    private final Object scanLock = new Object();
 
     // List to store sensor data as CSV rows
     private List<String> sensorDataList = new ArrayList<>();
@@ -221,35 +227,30 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
     private void initEmpaticaDeviceManager() {
         Log.d(TAG, "initEmpaticaDeviceManager: Starting device manager initialization");
 
-        // Check location permission first.
+        // Check location permission first
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            Log.w(TAG, "initEmpaticaDeviceManager: Location permission not granted, requesting permission");
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
                     REQUEST_PERMISSION_ACCESS_COARSE_LOCATION);
             return;
         }
 
-        // For Android 12 (API level 31) and above, check Bluetooth permission.
+        // Check Bluetooth permissions for Android 12+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Log.d(TAG, "initEmpaticaDeviceManager: Checking Android 12+ Bluetooth permissions");
             List<String> permissions = new ArrayList<>();
 
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
                     != PackageManager.PERMISSION_GRANTED) {
-                Log.w(TAG, "initEmpaticaDeviceManager: Bluetooth CONNECT permission not granted");
                 permissions.add(Manifest.permission.BLUETOOTH_CONNECT);
             }
 
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
                     != PackageManager.PERMISSION_GRANTED) {
-                Log.w(TAG, "initEmpaticaDeviceManager: Bluetooth SCAN permission not granted");
                 permissions.add(Manifest.permission.BLUETOOTH_SCAN);
             }
 
             if (!permissions.isEmpty()) {
-                Log.i(TAG, "initEmpaticaDeviceManager: Requesting Bluetooth permissions: " + permissions);
                 ActivityCompat.requestPermissions(this,
                         permissions.toArray(new String[0]),
                         REQUEST_BLUETOOTH_PERMISSION);
@@ -257,26 +258,28 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
             }
         }
 
-        // Check if API key is provided
-        if (TextUtils.isEmpty(EMPATICA_API_KEY)) {
-            Log.e(TAG, "initEmpaticaDeviceManager: API Key is empty. Cannot proceed with device initialization");
-            new AlertDialog.Builder(this)
-                    .setTitle("Warning")
-                    .setMessage("Please insert your API KEY")
-                    .setNegativeButton("Close", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int which) {
-                            Log.d(TAG, "API Key missing - closing application");
-                            finish();
-                        }
-                    })
-                    .show();
-            return;
-        }
+        // Initialize device manager with proper error handling
+        try {
+            if (deviceManager != null) {
+                deviceManager.cleanUp();
+                deviceManager = null;
+            }
 
-        Log.i(TAG, "initEmpaticaDeviceManager: Creating EmpaDeviceManager instance");
-        deviceManager = new EmpaDeviceManager(getApplicationContext(), this, this);
-        Log.i(TAG, "initEmpaticaDeviceManager: Authenticating with API key");
-        deviceManager.authenticateWithAPIKey(EMPATICA_API_KEY);
+            // Create new device manager instance
+            deviceManager = new EmpaDeviceManager(getApplicationContext(), this, this);
+
+            // Authenticate with API key
+            if (!TextUtils.isEmpty(EMPATICA_API_KEY)) {
+                Log.e(TAG, "Authenticating with the appropriate API key "+EMPATICA_API_KEY);
+                deviceManager.authenticateWithAPIKey(EMPATICA_API_KEY);
+            } else {
+                throw new IllegalStateException("API Key is empty");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error initializing EmpaticaDeviceManager", e);
+            showErrorDialog("Initialization Error",
+                    "Failed to initialize device manager. Please restart the app.");
+        }
     }
 
     @Override
@@ -320,15 +323,107 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
     @Override
     public void didFailedScanning(int errorCode) {
         Log.e(TAG, "didFailedScanning: Scanning failed with error code: " + errorCode);
-        String errorMessage = "Unknown error occurred";
-        // Additional handling for scanning errors can be added here.
-        switch(errorCode){
+        switch(errorCode) {
             case 1:
-                Log.e(TAG,"the scan failed due to multiple session already present closing this session and starting new one on trial basis!!!");
+                Log.e(TAG, "Scan failed due to multiple sessions already present. Will retry after delay.");
                 deviceManager.stopScanning();
-                deviceManager.startScanning();
-
+                isScanning = false; // Reset flag to ensure proper restart
+                new android.os.Handler(getMainLooper()).postDelayed(() -> {
+                    if (!isScanning) {
+                        deviceManager.startScanning();
+                        isScanning = true;
+                        Log.d(TAG, "Retrying scan after delay");
+                    }
+                }, 1000);  // 1 second delay
+                break;
+            default:
+                Log.e(TAG, "didFailedScanning: Unhandled error code: " + errorCode);
         }
+    }
+
+
+    private void startDeviceScan() {
+        synchronized (scanLock) {
+            if (isScanning) {
+                Log.d(TAG, "Scan already in progress, stopping current scan");
+                stopDeviceScan();
+                // Add delay before starting new scan
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    initiateNewScan();
+                }, 1000); // 1 second delay
+            } else {
+                initiateNewScan();
+            }
+        }
+    }
+    private void initiateNewScan() {
+        synchronized (scanLock) {
+            if (deviceManager == null) {
+                Log.e(TAG, "Device manager is null, reinitializing...");
+                initEmpaticaDeviceManager();
+                return;
+            }
+
+            if (isScanning) {
+                Log.d(TAG, "Scan already in progress, skipping new scan");
+                return;
+            }
+
+            try {
+                // Make sure any previous scan is stopped
+                deviceManager.stopScanning();
+                // Small delay to ensure previous scan is fully stopped
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    synchronized (scanLock) {
+                        try {
+                            deviceManager.startScanning();
+                            isScanning = true;
+                            updateLabel(statusLabel, "Scanning...");
+                            Log.d(TAG, "Scan started successfully");
+                        } catch (Exception e) {
+                            Log.e(TAG, "Failed to start scanning", e);
+                            isScanning = false;
+                            handleScanError(e);
+                        }
+                    }
+                }, 200); // 200ms delay
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to stop previous scanning", e);
+                isScanning = false;
+                handleScanError(e);
+            }
+        }
+    }
+    private void stopDeviceScan() {
+        synchronized (scanLock) {
+            if (isScanning && deviceManager != null) {
+                try {
+                    deviceManager.stopScanning();
+                    Log.d(TAG, "Scan stopped successfully");
+                } catch (Exception e) {
+                    Log.e(TAG, "Error stopping scan", e);
+                } finally {
+                    isScanning = false;
+                }
+            }
+        }
+    }
+
+    private void handleScanError(Exception e) {
+        String errorMessage;
+        if (e instanceof ConfigurationProfileException) {
+            errorMessage = "Invalid device configuration. Please ensure proper setup.";
+            // Reset device manager
+            if (deviceManager != null) {
+                deviceManager.cleanUp();
+                deviceManager = null;
+            }
+            initEmpaticaDeviceManager();
+        } else {
+            errorMessage = "Failed to start scanning. Please try again.";
+        }
+
+        showErrorDialog("Scanning Error", errorMessage);
     }
 
     /**
@@ -345,44 +440,51 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 Log.d(TAG, "enableBtLauncher: Received result from Bluetooth enable request");
                 if (result.getResultCode() == Activity.RESULT_OK) {
-                    Log.i(TAG, "enableBtLauncher: Bluetooth enabled, starting scanning");
-                    if (deviceManager != null) {
-                        deviceManager.startScanning();
-                    }
+                    Log.i(TAG, "enableBtLauncher: Bluetooth enabled");
+                    // Don't start scanning here - let bluetoothStateChanged handle it
                 } else {
                     Log.w(TAG, "enableBtLauncher: Bluetooth not enabled by the user");
                     Toast.makeText(this, "Bluetooth must be enabled to proceed", Toast.LENGTH_SHORT).show();
                 }
             });
 
+
     @Override
     public void bluetoothStateChanged() {
-        Log.d(TAG, "bluetoothStateChanged: Bluetooth state has changed");
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter != null) {
             runOnUiThread(() -> {
                 if (bluetoothAdapter.isEnabled()) {
-                    Log.i(TAG, "bluetoothStateChanged: Bluetooth is enabled");
                     updateLabel(statusLabel, "Bluetooth Enabled");
-                    if (deviceManager != null) {
-                        deviceManager.stopScanning();
-                        deviceManager.startScanning();
-                        Log.d(TAG, "bluetoothStateChanged: Restarted scanning after Bluetooth enabled");
+
+                    // Reset scanning state
+                    synchronized (scanLock) {
+                        isScanning = false;
                     }
+
+                    // Instead of directly starting scan, check if device manager needs initialization
+                    if (deviceManager == null) {
+                        initEmpaticaDeviceManager();
+                    }
+                    // Don't start scanning here - let didUpdateStatus handle it
                 } else {
-                    Log.i(TAG, "bluetoothStateChanged: Bluetooth is disabled");
                     updateLabel(statusLabel, "Bluetooth Disabled");
-                    if (deviceManager != null) {
-                        deviceManager.stopScanning();
-                        deviceManager.disconnect();
-                        Log.d(TAG, "bluetoothStateChanged: Stopped scanning and disconnected due to Bluetooth off");
-                    }
+                    stopDeviceScan();
                     hide();
                     didRequestEnableBluetooth();
                 }
             });
         }
     }
+
+    private void showErrorDialog(String title, String message) {
+        runOnUiThread(() -> new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                .show());
+    }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -407,10 +509,21 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
 
         switch (status) {
             case READY:
-                Log.d(TAG, "didUpdateStatus: Device manager ready, starting scan");
+                Log.d(TAG, "didUpdateStatus: Device manager ready");
                 updateLabel(statusLabel, status.name() + " - Turn on your device");
-                deviceManager.startScanning();
+                // Instead of directly starting scan, use startDeviceScan which handles synchronization
+                startDeviceScan();
                 hide();
+                break;
+
+            case DISCOVERING:
+                Log.d(TAG, "Active discovery started");
+                updateLabel(statusLabel, "Searching for devices...");
+                break;
+
+            case CONNECTING:
+                Log.d(TAG, "Attempting to connect");
+                updateLabel(statusLabel, "Connecting...");
                 break;
             case CONNECTED:
                 Log.i(TAG, "didUpdateStatus: Device connected successfully");
@@ -421,6 +534,8 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
                 updateLabel(deviceNameLabel, "");
                 hide();
                 saveDataToCSV();
+                // After disconnection, restart scanning
+                startDeviceScan();
                 break;
             default:
                 Log.d(TAG, "didUpdateStatus: Status changed to: " + status.name());
