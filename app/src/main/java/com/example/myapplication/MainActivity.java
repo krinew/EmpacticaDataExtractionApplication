@@ -40,6 +40,9 @@ import com.empatica.empalink.config.EmpaSensorType;
 import com.empatica.empalink.config.EmpaStatus;
 import com.empatica.empalink.delegate.EmpaDataDelegate;
 import com.empatica.empalink.delegate.EmpaStatusDelegate;
+import android.content.Intent;
+import androidx.core.content.ContextCompat;
+
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -59,7 +62,7 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
     private static final int REQUEST_BLUETOOTH_PERMISSION = 2;
     private static final int REQUEST_BLUETOOTH_SCAN_PERMISSION = 3;
     private static final String TAG = "MainActivity"; // Tag for logging
-    private static final String EMPATICA_API_KEY = "2fe2f405268349efaf63509c3dec89f5"; // TODO: Insert your API Key here
+    private static final String EMPATICA_API_KEY = "2d7ce21b237741cdb35a1007ec98fc18"; // TODO: Insert your API Key here
 
     private EmpaDeviceManager deviceManager = null;
 
@@ -77,8 +80,6 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
     private TextView wristStatusLabel;
     private LinearLayout dataCnt;
     private Button downloadButton;
-
-
 
     private boolean isScanning = false;
     private final Object scanLock = new Object();
@@ -139,6 +140,10 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
 
         // Initialize the Empatica device manager.
         initEmpaticaDeviceManager();
+
+        Intent serviceIntent = new Intent(this, EmpaticaService.class);
+        ContextCompat.startForegroundService(this, serviceIntent);
+
     }
 
     /**
@@ -308,8 +313,11 @@ public class MainActivity extends AppCompatActivity implements EmpaDataDelegate,
     protected void onDestroy() {
         Log.d(TAG, "onDestroy: Activity being destroyed, cleaning up device manager");
         super.onDestroy();
-        if (deviceManager != null) {
-            deviceManager.cleanUp();
+        if (isFinishing()) {
+            if (deviceManager != null) {
+                deviceManager.disconnect();
+                deviceManager.cleanUp();
+            }
         }
     }
 
