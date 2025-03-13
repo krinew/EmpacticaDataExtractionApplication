@@ -37,6 +37,7 @@ public class EmpaticaService extends Service {
                 .setContentText("Collecting sensor data in background")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(pendingIntent)
+                .setOngoing(true) ///Ensures that the notification is not cleared when the application is running!
                 .build();
 
         startForeground(NOTIFICATION_ID, notification);

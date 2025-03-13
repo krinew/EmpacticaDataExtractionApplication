@@ -1,202 +1,267 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity"
-    android:orientation="vertical"
-    android:padding="16dp"
-    android:background="@android:color/holo_blue_dark">
+    android:background="#1A1A1A"
+    tools:context=".MainActivity">
 
-    <!-- Status TextView -->
-    <TextView
-        android:id="@+id/status"
-        android:layout_width="match_parent"
-        android:layout_height="36dp"
-        android:textColor="@android:color/black"
-        android:textSize="18sp"
-        android:textStyle="bold" />
-
-    <!-- Device Name TextView -->
-    <TextView
-        android:id="@+id/deviceName"
-        android:layout_width="match_parent"
-        android:layout_height="36dp"
-        android:textColor="@android:color/black"
-        android:textSize="16sp"
-        android:layout_marginTop="8dp" />
-
-    <!-- Data Area Container -->
+    <!-- Top Green Header Section -->
     <LinearLayout
-        android:id="@+id/dataArea"
+        android:id="@+id/header"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:visibility="invisible"
-        android:layout_marginTop="8dp">
+        android:padding="16dp"
+        android:background="#03DAC6"
+        app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Accelerometer Label -->
+        <!-- Status TextView -->
         <TextView
-            android:id="@+id/accel_label"
+            android:id="@+id/status"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/accel"
-            android:textColor="@android:color/black"
-            android:textSize="16sp" />
+            android:text="CONNECTED"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:drawablePadding="8dp" />
 
-        <!-- Accelerometer Data Horizontal Area -->
-        <LinearLayout
-            android:id="@+id/accel_area"
+        <!-- Device Name TextView -->
+        <TextView
+            android:id="@+id/deviceName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp">
+            android:layout_marginTop="4dp"
+            android:text="Empatica E4"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"/>
+    </LinearLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
+    <!-- Main Card/Scroll Section for Data -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_margin="16dp"
+        app:cardCornerRadius="12dp"
+        app:cardBackgroundColor="#2D2D2D"
+        app:layout_constraintTop_toBottomOf="@id/header"
+        app:layout_constraintBottom_toTopOf="@+id/buttonBar">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="16dp">
+
+            <!-- Data Area Container (Merged from second layout) -->
+            <LinearLayout
+                android:id="@+id/dataArea"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/accel_x"
-                android:textColor="@android:color/black" />
+                android:orientation="vertical"
+                android:visibility="invisible">
 
-            <TextView
-                android:id="@+id/accel_x"
-                android:layout_width="50dp"
-                android:layout_height="wrap_content"
-                android:text="@string/emptyText"
-                android:textColor="@android:color/black" />
+                <!-- Accelerometer Label -->
+                <TextView
+                    android:id="@+id/accel_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/accel"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/accel_y"
-                android:textColor="@android:color/black"
-                android:layout_marginStart="8dp" />
+                <!-- Accelerometer Data Horizontal Area -->
+                <LinearLayout
+                    android:id="@+id/accel_area"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp">
 
-            <TextView
-                android:id="@+id/accel_y"
-                android:layout_width="50dp"
-                android:layout_height="wrap_content"
-                android:text="@string/emptyText"
-                android:textColor="@android:color/black" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/accel_x"
+                        android:textColor="@android:color/white" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/accel_z"
-                android:textColor="@android:color/black"
-                android:layout_marginStart="8dp" />
+                    <TextView
+                        android:id="@+id/accel_x"
+                        android:layout_width="50dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/emptyText"
+                        android:textColor="@android:color/white" />
 
-            <TextView
-                android:id="@+id/accel_z"
-                android:layout_width="50dp"
-                android:layout_height="wrap_content"
-                android:text="@string/emptyText"
-                android:textColor="@android:color/white" />
-        </LinearLayout>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/accel_y"
+                        android:textColor="@android:color/white"
+                        android:layout_marginStart="8dp" />
 
-        <!-- BVP Label and Value -->
-        <TextView
-            android:id="@+id/bvp_label"
-            android:layout_marginTop="10dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/bvp_label"
-            android:textColor="@android:color/white" />
+                    <TextView
+                        android:id="@+id/accel_y"
+                        android:layout_width="50dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/emptyText"
+                        android:textColor="@android:color/white" />
 
-        <TextView
-            android:id="@+id/bvp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/emptyText"
-            android:textColor="@android:color/white" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/accel_z"
+                        android:textColor="@android:color/white"
+                        android:layout_marginStart="8dp" />
 
-        <!-- EDA Label and Value -->
-        <TextView
-            android:id="@+id/eda_label"
-            android:layout_marginTop="10dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/eda_label"
-            android:textColor="@android:color/white" />
+                    <TextView
+                        android:id="@+id/accel_z"
+                        android:layout_width="50dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/emptyText"
+                        android:textColor="@android:color/white" />
+                </LinearLayout>
 
-        <TextView
-            android:id="@+id/eda"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/emptyText"
-            android:textColor="@android:color/white" />
+                <!-- BVP Label and Value -->
+                <TextView
+                    android:id="@+id/bvp_label"
+                    android:layout_marginTop="10dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/bvp_label"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold" />
 
-        <!-- IBI Label and Value -->
-        <TextView
-            android:id="@+id/ibi_label"
-            android:layout_marginTop="10dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/ibi_label"
-            android:textColor="@android:color/white" />
+                <TextView
+                    android:id="@+id/bvp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/emptyText"
+                    android:textColor="@android:color/white" />
 
-        <TextView
-            android:id="@+id/ibi"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/emptyText"
-            android:textColor="@android:color/white" />
+                <!-- EDA Label and Value -->
+                <TextView
+                    android:id="@+id/eda_label"
+                    android:layout_marginTop="10dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/eda_label"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold" />
 
-        <!-- Temperature Label and Value -->
-        <TextView
-            android:id="@+id/temp_label"
-            android:layout_marginTop="10dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/temp_label"
-            android:textColor="@android:color/white" />
+                <TextView
+                    android:id="@+id/eda"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/emptyText"
+                    android:textColor="@android:color/white" />
 
-        <TextView
-            android:id="@+id/temperature"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/emptyText"
-            android:textColor="@android:color/white" />
+                <!-- IBI Label and Value -->
+                <TextView
+                    android:id="@+id/ibi_label"
+                    android:layout_marginTop="10dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ibi_label"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold" />
 
-        <!-- Battery Label and Value -->
-        <TextView
-            android:id="@+id/battery_label"
-            android:layout_marginTop="10dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/battery_label"
-            android:textColor="@android:color/white" />
+                <TextView
+                    android:id="@+id/ibi"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/emptyText"
+                    android:textColor="@android:color/white" />
 
-        <TextView
-            android:id="@+id/battery"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/emptyText"
-            android:textColor="@android:color/white" />
+                <!-- Temperature Label and Value -->
+                <TextView
+                    android:id="@+id/temp_label"
+                    android:layout_marginTop="10dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/temp_label"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold" />
 
-        <!-- Wrist Status -->
-        <TextView
-            android:id="@+id/wrist_status_label"
-            android:layout_marginTop="10dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/emptyText"
-            android:textColor="@android:color/white" />
+                <TextView
+                    android:id="@+id/temperature"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/emptyText"
+                    android:textColor="@android:color/white" />
 
-        <!-- Disconnect Button -->
+                <!-- Battery Label and Value -->
+                <TextView
+                    android:id="@+id/battery_label"
+                    android:layout_marginTop="10dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/battery_label"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/battery"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/emptyText"
+                    android:textColor="@android:color/white" />
+
+                <!-- Wrist Status -->
+                <TextView
+                    android:id="@+id/wrist_status_label"
+                    android:layout_marginTop="10dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/emptyText"
+                    android:textColor="@android:color/white" />
+            </LinearLayout>
+        </ScrollView>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Bottom Button Bar -->
+    <LinearLayout
+        android:id="@+id/buttonBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:background="#2D2D2D"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <Button
+            android:id="@+id/connectButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="CONNECT"
+            android:backgroundTint="#03DAC6"
+            android:textColor="@android:color/white"
+            android:layout_marginEnd="16dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+
         <Button
             android:id="@+id/disconnectButton"
-            android:layout_marginTop="16dp"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:text="STOP STREAMING" />
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="STOP"
+            android:backgroundTint="#FF0000"
+            android:textColor="@android:color/white"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
 
         <Button
             android:id="@+id/downloadButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Download CSV" />
-
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:text="EXPORT CSV"
+            android:backgroundTint="#4CAF50"
+            android:textColor="@android:color/white"
+            android:layout_marginStart="16dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
     </LinearLayout>
-</LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
