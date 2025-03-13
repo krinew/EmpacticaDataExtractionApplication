@@ -66,4 +66,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Empatica for the E4 device and original SDK
 - Contributors to the Android BLE libraries
 
-For additional information about the Empatica API implementation, refer to the official documentation.
+For additional information about the Empatica API implementation, refer to the [official documentation.](https://www.empatica.com/research/e4-sunset/)
